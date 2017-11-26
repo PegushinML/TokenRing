@@ -1,6 +1,7 @@
 package node;
 
-import message.TransportMessage;
+import message.Message;
+import protocol.TokenRing;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,23 +12,26 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SimpleNode<T> {
     private final Long id;
     private final Long nextId;
-    private final Queue<TransportMessage<T>> messageQueue;
+    private final Queue<Message<T>> messageQueue;
+    private final TokenRing<T> controller;
 
-    private SimpleNode(Long id, Long nextId) {
+    private SimpleNode(Long id, Long nextId, TokenRing<T> protocol) {
         this.id = id;
         this.nextId = nextId;
         this.messageQueue = new ConcurrentLinkedQueue<>();
+        this.controller = protocol;
     }
 
-    public void receiveMessage(TransportMessage<T> message) {
+    public void receiveMessage(Message<T> message) {
         if(this.id.equals(message.getDestination())) {
-            System.out.println("Node-" + this.id + " got message with " + message.getPayload().toString());
+            //System.out.println("Node-" + this.id + " got message with " + message.getPayload().toString() + " for time: " + message.finish());
+            this.controller.addMetric(message.finish());
         } else if(!this.messageQueue.offer(message)) {
             throw new RuntimeException();
         }
     }
 
-    public Queue<TransportMessage<T>> getMessageQueue() {
+    public Queue<Message<T>> getMessageQueue() {
         return this.messageQueue;
     }
 
@@ -39,13 +43,13 @@ public class SimpleNode<T> {
         return this.nextId;
     }
 
-    public static <T> Map<Long, SimpleNode<T>> initSimpleNodeMap(long size) {
+    public static <T> Map<Long, SimpleNode<T>> initSimpleNodeMap(long size, TokenRing<T> controller) {
         Map<Long, SimpleNode<T>> resultMap = new HashMap<>();
         for(long i = 0; i < size - 1; i++) {
-            SimpleNode<T> currentNode = new SimpleNode<>(i, i+1);
+            SimpleNode<T> currentNode = new SimpleNode<>(i, i+1, controller);
             resultMap.put(i, currentNode);
         }
-        resultMap.put(size - 1, new SimpleNode<>(size, 0L));
+        resultMap.put(size - 1, new SimpleNode<>(size, 0L, controller));
         return Collections.unmodifiableMap(resultMap);
     }
 }

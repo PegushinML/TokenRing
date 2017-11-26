@@ -1,26 +1,36 @@
 package message;
 
-public class TransportMessage<T> {
+public class TransportMessage<T> implements Message {
     private final Long from;
     private final Long to;
     private final T payload;
+    private final long startTime;
 
     private TransportMessage(Long from, Long to, T payload) {
         this.from = from;
         this.to = to;
         this.payload = payload;
+        this.startTime = System.currentTimeMillis();
     }
 
+    @Override
     public Long getSource() {
         return this.from;
     }
 
+    @Override
     public Long getDestination() {
         return this.to;
     }
 
+    @Override
     public T getPayload() {
         return this.payload;
+    }
+
+    @Override
+    public long finish() {
+        return System.currentTimeMillis() - this.startTime;
     }
 
     public static <T> Builder<T> builder() {

@@ -3,19 +3,19 @@ package protocol;
 import message.TransportMessage;
 import node.SimpleNode;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class TokenRing<T> {
     private final Map<Long, SimpleNode<T>> nodeMap;
     private final Map<Long, Thread> threadMap;
     private boolean isActive;
+    private final List<Long> metricsList;
 
     public TokenRing(long size) {
-        this.nodeMap = SimpleNode.initSimpleNodeMap(size);
+        this.nodeMap = SimpleNode.initSimpleNodeMap(size, this);
         this.threadMap = initThreadMap(size);
         this.isActive = true;
+        this.metricsList = Collections.synchronizedList(new ArrayList<>());
     }
 
     private Map<Long,Thread> initThreadMap(long size) {
@@ -38,15 +38,6 @@ public class TokenRing<T> {
             }));
         }
         return Collections.unmodifiableMap(threadMap);
-    }
-
-    public void printMessagesInfo() {
-        int total = 0;
-        for(long key : this.nodeMap.keySet()) {
-            System.out.println("Node-" + key + " contains " + this.nodeMap.get(key).getMessageQueue().size() + " messages");
-            total += this.nodeMap.get(key).getMessageQueue().size();
-        }
-        System.out.println("Total amount of messages is " + total);
     }
 
     public void start() {
@@ -77,7 +68,24 @@ public class TokenRing<T> {
         return new MessageRequest();
     }
 
+    public String getNodeDistr() {
+        StringBuilder result = new StringBuilder();
+        for(long key : this.nodeMap.keySet()) {
+            result.append(this.nodeMap.get(key).getMessageQueue().size());
+            result.append(";");
+        }
+        return result.toString();
+    }
+
+    public void addMetric(long value) {
+        this.metricsList.add(value);
+    }
+
+    public List<Long> getMetricsList() {
+        return this.metricsList;
+    }
     public class MessageRequest {
+
         private Long from;
         private Long to;
         private T payload;
